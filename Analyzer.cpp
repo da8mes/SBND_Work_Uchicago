@@ -53,44 +53,57 @@ int main(int argc, char* argv[]) {
  
   size_t nevents = 0;
 
-  // floating point histograms 
-  // TH2F::TH2F(name, title, nbinsx, xlow, xup, nbinsy, ylow, yup);
-  
   //Histograms about  parent particles
   //Note: these are initial values (can extend to final state values)
-  TH1F* nparents = new TH1F("nparents", "NParents", 100, 0, 10);
-  nparents->GetXaxis()->SetTitle("Num_Parents");
-  nparents->GetYaxis()->SetTitle("Num_Events"); 
+  TH1F* nparts = new TH1F("nparts", "NParticles", 10, 0, 10);
+  nparts->GetXaxis()->SetTitle("Num_Particles"); 
   TH1F* ppdg = new TH1F("ppdg", "Parent_PdgIDs", 200, 0, 20);
   ppdg->GetXaxis()->SetTitle("PdgCodes");
-  ppdg->GetYaxis()->SetTitle("Num_Events");
   TH1F* px0 = new TH1F("px", "Parent_P_X_0", 100, -20, 20);
-  px0->GetXaxis()->SetTitle("P_X_0");
-  px0->GetYaxis()->SetTitle("Num_Events");
+  px0->GetXaxis()->SetTitle("P_X_0 [Gev]");
   TH1F* py0 = new TH1F("py", "Parent_P_Y_0", 100, -20, 20);
-  py0->GetXaxis()->SetTitle("P_Y_0");
-  py0->GetYaxis()->SetTitle("Num_Events");
+  py0->GetXaxis()->SetTitle("P_Y_0 [Gev]");
+  TH1F* pz0 = new TH1F("pz", "Parent_P_Z_0", 100, -1, 4);
+  pz0->GetXaxis()->SetTitle("P_Z_0 [Gev]");
   TH1F* p0 = new TH1F("p", "Parent_P_0", 100, -20, 20);
-  p0->GetXaxis()->SetTitle("P_0");
-  p0->GetYaxis()->SetTitle("Num_Events");
+  p0->GetXaxis()->SetTitle("P_0 [Gev]");
   TH1F* E = new TH1F("E", "Parent_E", 100, -20, 20);
-  E->GetXaxis()->SetTitle("E");
-  E->GetYaxis()->SetTitle("Num_Events"); 
- // TH1F* theta_xy = new TH1F("theta_xy", "Parent_Theta_XY", 1000, -5, 5);
-   
-  /*
-  // Histograms about daughter particles 
-  TH1F* ndaughter = new TH1F("ndaughter", "Ndaughters", 20, 0, 20);
-  TH1F* dpdg = new TH1F("dpdg", "Daughter_PDgIds", 20, 0, 20);
-  */ 
- 
+  E->GetXaxis()->SetTitle("E [Gev]");
+  //TH1F* dist = new TH1F("dist", "Parent_travel_dis", 100, 0, 20);
+  //dist->GetXaxis()->SetTitle("distance");
+  TH1F* costheta_xy = new TH1F("costheta_xy", "Parent_CosTheta", 1000, -1, 1);
+  costheta_xy->GetXaxis()->SetTitle("Costheta");
+
   // Correlation Plots  
-  //TGraph* ptheta = new TGraph(); 
-  //ptheta->SetTitle("P vs Theta");
-   
+  TH2F* pcostheta = new TH2F("pcostheta", "P vs CosTheta", 50, -1, 1, 50, 0, 2);
+  pcostheta->GetXaxis()->SetTitle("CosTheta");
+  pcostheta->GetYaxis()->SetTitle("P_0 [Gev]");
+  pcostheta->SetOption("COLZ"); // draws scatter
   // Clone() method makes a copy of any TObject 
   // TH2F* hB = (TH2F*) hA->Clone("hB");
 
+
+  // Daughter Lepton Histograms 
+  TH1F* lpdg = new TH1F("lpdg", "Lepton_PdgID", 200, 0, 20);
+  lpdg->GetXaxis()->SetTitle("PdgCodes");
+  TH1F* lpx0 = new TH1F("lpx", "Lepton_P_X_0", 100, -20, 20);
+  lpx0->GetXaxis()->SetTitle("P_X_0 [Gev]");
+  TH1F* lpy0 = new TH1F("lpy", "Lepton_P_Y_0", 100, -20, 20);
+  lpy0->GetXaxis()->SetTitle("P_Y_0 [Gev]");
+  TH1F* lpz0 = new TH1F("lpz", "Lepton_P_Z_0", 100, -1, 20);
+  lpz0->GetXaxis()->SetTitle("P_Z_0 [Gev]");
+  TH1F* lp0 = new TH1F("lp", "Lepton_P_0", 100, -20, 20);
+  lp0->GetXaxis()->SetTitle("P_0 [Gev]");
+  TH1F* lE = new TH1F("lE", "Lepton_E", 100, -20, 20);
+  lE->GetXaxis()->SetTitle("E [Gev]");
+  TH1F* lcostheta_xy = new TH1F("lcostheta_xy", "Lepton_CosTheta", 1000, -1, 1);
+  lcostheta_xy->GetXaxis()->SetTitle("Costheta");
+
+  TH2F* lpcostheta = new TH2F("lpcostheta", "Lepton P vs CosTheta", 50, -1, 1, 50, 0, 2);
+  lpcostheta->GetXaxis()->SetTitle("CosTheta");
+  lpcostheta->GetYaxis()->SetTitle("P_0 [Gev]");
+  lpcostheta->SetOption("COLZ"); // draws scatter /* 
+  
 // Event loop
 // get events from filename untill there are none
 for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
@@ -120,71 +133,81 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
     }
     */ 
 
-     // Loop through particles in MCTruth
-     int num_par = mctruth->at(0).NParticles();
-     nparents->Fill(num_par); 
+     // Loop through particles in MCTruth 
      // for (auto const& particle : (*mctruth)) (this would be nice)
-     for (int i=0; i<num_par; i++) 
+     for (int i=0; i<1; i++) // was i < num_par (loop not used for now)
 	{
-         //  extend this to the case where mctruth vector might have more 
-         //  elements.
-        
+
          // Get parent info 
-         const simb::MCParticle& particle = mctruth->at(0).GetParticle(i); 
-         int pdg = particle.PdgCode(); 
-	 size_t momentum = particle.P();
-         size_t momentum_x = particle.Px();
-         size_t momentum_y = particle.Py(); 
-	 size_t energy = particle.E();
-
-
-         //size_t theta = TMath::ATan(momentum_y/momentum_x);
-
-         //std::cout << "theta_vals: " << theta << std::endl;
+         const simb::MCNeutrino& neutrino = mctruth->at(0).GetNeutrino();
+         const simb::MCParticle& parent = neutrino.Nu(); 
+         int pdg = parent.PdgCode(); 
+         // contains momentum as a vector
+	 const TLorentzVector momentum = parent.Momentum();
+         size_t p = parent.P();
+         size_t momentum_x = momentum.Px();
+         size_t momentum_y = momentum.Py(); 
+         size_t momentum_z = momentum.Pz(); 
+	 size_t energy = momentum.E();
+         size_t costheta = momentum.CosTheta();  
+	 //size_t distance = parent.EndZ(); 
         
-         // Fill corresponding parent histograms
+         // Fill corresponding parent histograms 
          ppdg->Fill(pdg);
-         p0->Fill(momentum);
+         p0->Fill(p);
          px0->Fill(momentum_x);
          py0->Fill(momentum_y);
+         pz0->Fill(momentum_z); 
          E->Fill(energy);
-         //theta_xy->Fill(theta);
-         //ptheta->SetPoint(nevents, theta, momentum);
+         //dist->Fill(distance); 
+         costheta_xy->Fill(costheta);
+         pcostheta->Fill(costheta, p);     
+	
+         // Get daughter Lepton (Electron or Muon)
+         const simb::MCParticle& lep = neutrino.Lepton(); 
+         int lep_pdg = lep.PdgCode(); 
+	 const TLorentzVector lmomentum = lep.Momentum();
+         size_t lp = lep.P(); 
+         size_t lmomentum_x = lmomentum.Px();
+         size_t lmomentum_y = lmomentum.Py();
+         size_t lmomentum_z = lmomentum.Pz();
+         size_t lenergy = lmomentum.E();
+         size_t lcostheta = lmomentum.CosTheta();  
 
-         
-         /* 
-         // Get all daughters
-         int num_d = particle.NumberDaughters();
-         ndaughter->Fill(num_d); 
-         for (int j=0; j<num_d; j++)
-	    { 
-              const simb::MCParticle& daughter = particle.Daughter(j);
-              int daughter_pdg = daughter.PdgCode();
-              dpdg->Fill(daughter_pdg);
-
-             } 
-	*/ 
-	}  
-     
-  }
-  // has to be DrawClone to survive after execution of macro1
-  //ptheta->DrawClone("AP*"); 
-
+         // Fill daughter  Lepton hists
+         lpdg->Fill(lep_pdg);
+         lp0->Fill(lp);
+         lpx0->Fill(lmomentum_x);
+         lpy0->Fill(lmomentum_y);
+         lpz0->Fill(lmomentum_z);
+         lE->Fill(lenergy);
+         lcostheta_xy->Fill(lcostheta); 
+         lpcostheta->Fill(lcostheta, lp);
+        }
+}
 // Save histogram (to file and PDF)
   TFile* fout = new TFile(outfile.c_str(), "recreate");
 
-  // Write the hists and plots
-  nparents->Write(); 
+  // Write the hists and plots 
   ppdg->Write();
   p0->Write();
   px0->Write();
   py0->Write();
+  pz0->Write();
   E->Write(); 
-  //theta_xy->Write();
-  // ndaughter->Write();
-  // dpdg->Write();   
-  //ptheta->Write();
+  costheta_xy->Write(); 
+  pcostheta->Write();
  
+  lpdg->Write(); 
+  lp0->Write();
+  lpx0->Write();
+  lpy0->Write();
+  lpz0->Write();
+  lE->Write(); 
+  lcostheta_xy->Write(); 
+  lpcostheta->Write();
+
+
   fout->Close();
 
   return 0;

@@ -40,8 +40,9 @@ int main(int argc, char* argv[]) {
 
   // graph formatting lines 
   gStyle->SetOptStat(0);
-  gStyle->SetHistLineColor(kBlack);
-
+  gStyle->SetHistLineColor(kBlue);
+  gStyle->SetFillColor(0);   
+  gStyle->SetOptStat("nemr"); 
 
   // read and print input file name  
   std::string outfile = argv[1];
@@ -55,27 +56,27 @@ int main(int argc, char* argv[]) {
 
   //Histograms about  parent particles
   //Note: these are initial values (can extend to final state values)
-  TH1F* nparts = new TH1F("nparts", "NParticles", 10, 0, 10);
+  TH1F* nparts = new TH1F("nparts", "NParticles", 1000, 0, 10);
   nparts->GetXaxis()->SetTitle("Num_Particles"); 
-  TH1F* ppdg = new TH1F("ppdg", "Parent_PdgIDs", 200, 0, 20);
+  TH1F* ppdg = new TH1F("ppdg", "Parent_PdgIDs", 1000, 0, 20);
   ppdg->GetXaxis()->SetTitle("PdgCodes");
-  TH1F* px0 = new TH1F("px", "Parent_P_X_0", 100, -20, 20);
+  TH1F* px0 = new TH1F("px", "Parent_P_X_0", 1000, -2, 2);
   px0->GetXaxis()->SetTitle("P_X_0 [Gev]");
-  TH1F* py0 = new TH1F("py", "Parent_P_Y_0", 100, -20, 20);
+  TH1F* py0 = new TH1F("py", "Parent_P_Y_0", 1000, -2, 2);
   py0->GetXaxis()->SetTitle("P_Y_0 [Gev]");
-  TH1F* pz0 = new TH1F("pz", "Parent_P_Z_0", 100, -1, 4);
+  TH1F* pz0 = new TH1F("pz", "Parent_P_Z_0", 1000, 0, 3);
   pz0->GetXaxis()->SetTitle("P_Z_0 [Gev]");
-  TH1F* p0 = new TH1F("p", "Parent_P_0", 100, -20, 20);
+  TH1F* p0 = new TH1F("p", "Parent_P_0", 1000, 0, 3);
   p0->GetXaxis()->SetTitle("P_0 [Gev]");
-  TH1F* E = new TH1F("E", "Parent_E", 100, -20, 20);
+  TH1F* E = new TH1F("E", "Parent_E", 1000, 0, 3);
   E->GetXaxis()->SetTitle("E [Gev]");
   //TH1F* dist = new TH1F("dist", "Parent_travel_dis", 100, 0, 20);
   //dist->GetXaxis()->SetTitle("distance");
-  TH1F* costheta_xy = new TH1F("costheta_xy", "Parent_CosTheta", 1000, -1, 1);
+  TH1F* costheta_xy = new TH1F("costheta_xy", "Parent_CosTheta", 10000, -1, 1);
   costheta_xy->GetXaxis()->SetTitle("Costheta");
 
   // Correlation Plots  
-  TH2F* pcostheta = new TH2F("pcostheta", "P vs CosTheta", 50, -1, 1, 50, 0, 2);
+  TH2F* pcostheta = new TH2F("pcostheta", "P vs CosTheta", 20, 0.8, 1, 20, 0, 2);
   pcostheta->GetXaxis()->SetTitle("CosTheta");
   pcostheta->GetYaxis()->SetTitle("P_0 [Gev]");
   pcostheta->SetOption("COLZ"); // draws scatter
@@ -84,26 +85,26 @@ int main(int argc, char* argv[]) {
 
 
   // Daughter Lepton Histograms 
-  TH1F* lpdg = new TH1F("lpdg", "Lepton_PdgID", 200, 0, 20);
+  TH1F* lpdg = new TH1F("lpdg", "Lepton_PdgID", 2000, 0, 20);
   lpdg->GetXaxis()->SetTitle("PdgCodes");
-  TH1F* lpx0 = new TH1F("lpx", "Lepton_P_X_0", 100, -20, 20);
+  TH1F* lpx0 = new TH1F("lpx", "Lepton_P_X_0", 1000, -2, 2);
   lpx0->GetXaxis()->SetTitle("P_X_0 [Gev]");
-  TH1F* lpy0 = new TH1F("lpy", "Lepton_P_Y_0", 100, -20, 20);
+  TH1F* lpy0 = new TH1F("lpy", "Lepton_P_Y_0", 1000, -2, 2);
   lpy0->GetXaxis()->SetTitle("P_Y_0 [Gev]");
-  TH1F* lpz0 = new TH1F("lpz", "Lepton_P_Z_0", 100, -1, 20);
+  TH1F* lpz0 = new TH1F("lpz", "Lepton_P_Z_0", 1000, -2, 2);
   lpz0->GetXaxis()->SetTitle("P_Z_0 [Gev]");
-  TH1F* lp0 = new TH1F("lp", "Lepton_P_0", 100, -20, 20);
+  TH1F* lp0 = new TH1F("lp", "Lepton_P_0", 1000, 0, 3);
   lp0->GetXaxis()->SetTitle("P_0 [Gev]");
-  TH1F* lE = new TH1F("lE", "Lepton_E", 100, -20, 20);
+  TH1F* lE = new TH1F("lE", "Lepton_E", 1000, 0, 3);
   lE->GetXaxis()->SetTitle("E [Gev]");
   TH1F* lcostheta_xy = new TH1F("lcostheta_xy", "Lepton_CosTheta", 1000, -1, 1);
   lcostheta_xy->GetXaxis()->SetTitle("Costheta");
 
-  TH2F* lpcostheta = new TH2F("lpcostheta", "Lepton P vs CosTheta", 50, -1, 1, 50, 0, 2);
+  TH2F* lpcostheta = new TH2F("lpcostheta", "Lepton P vs CosTheta", 75, -1, 1, 75, 0, 2);
   lpcostheta->GetXaxis()->SetTitle("CosTheta");
   lpcostheta->GetYaxis()->SetTitle("P_0 [Gev]");
-  lpcostheta->SetOption("COLZ"); // draws scatter /* 
-  
+  lpcostheta->SetOption("COLZ");  
+
 // Event loop
 // get events from filename untill there are none
 for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
@@ -144,12 +145,12 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
          int pdg = parent.PdgCode(); 
          // contains momentum as a vector
 	 const TLorentzVector momentum = parent.Momentum();
-         size_t p = parent.P();
-         size_t momentum_x = momentum.Px();
-         size_t momentum_y = momentum.Py(); 
-         size_t momentum_z = momentum.Pz(); 
-	 size_t energy = momentum.E();
-         size_t costheta = momentum.CosTheta();  
+         float p = parent.P();
+         float momentum_x = momentum.Px();
+         float momentum_y = momentum.Py(); 
+         float momentum_z = momentum.Pz(); 
+	 float energy = momentum.E();
+         float costheta = momentum.CosTheta();  
 	 //size_t distance = parent.EndZ(); 
         
          // Fill corresponding parent histograms 
@@ -167,13 +168,12 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
          const simb::MCParticle& lep = neutrino.Lepton(); 
          int lep_pdg = lep.PdgCode(); 
 	 const TLorentzVector lmomentum = lep.Momentum();
-         size_t lp = lep.P(); 
-         size_t lmomentum_x = lmomentum.Px();
-         size_t lmomentum_y = lmomentum.Py();
-         size_t lmomentum_z = lmomentum.Pz();
-         size_t lenergy = lmomentum.E();
-         size_t lcostheta = lmomentum.CosTheta();  
-
+         float lp = lep.P(); 
+         float lmomentum_x = lmomentum.Px();
+         float lmomentum_y = lmomentum.Py();
+         float lmomentum_z = lmomentum.Pz();
+         float lenergy = lmomentum.E();
+         float lcostheta = lmomentum.CosTheta();  
          // Fill daughter  Lepton hists
          lpdg->Fill(lep_pdg);
          lp0->Fill(lp);
@@ -185,6 +185,43 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
          lpcostheta->Fill(lcostheta, lp);
         }
 }
+
+         // Draw Hists
+         ppdg->Draw();
+         gPad->SaveAs("ParentID.png");
+         p0->Draw();
+         gPad->SaveAs("P0.png");
+         px0->Draw();
+         gPad->SaveAs("Px0.png");
+         py0->Draw();
+         gPad->SaveAs("Py0.png");
+         pz0->Draw(); 
+         gPad->SaveAs("Pz0.png");
+         E->Draw();
+         gPad->SaveAs("ParentE.png");
+         //dist->Fill(distance); 
+         costheta_xy->Draw();
+         gPad->SaveAs("Parent_CosTheta.png");
+         pcostheta->Draw();
+         gPad->SaveAs("Parent_PvsCosTheta.png");     
+	
+         lpdg->Draw();
+         gPad->SaveAs("LeptonID.png");
+         lp0->Draw();
+         gPad->SaveAs("LeptonP0.png");
+         lpx0->Draw();
+         gPad->SaveAs("LeptonPx.png");
+         lpy0->Draw();
+         gPad->SaveAs("LeptonPy.png");
+         lpz0->Draw();
+         gPad->SaveAs("LeptonPz.png");
+         lE->Draw();
+         gPad->SaveAs("LeptonE.png");
+         lcostheta_xy->Draw();
+         gPad->SaveAs("LeptonCosTheta.png"); 
+         lpcostheta->Draw();
+         gPad->SaveAs("LeptonPvsCosTheta.png");
+        
 // Save histogram (to file and PDF)
   TFile* fout = new TFile(outfile.c_str(), "recreate");
 

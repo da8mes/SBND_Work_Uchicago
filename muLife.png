@@ -1,0 +1,43 @@
+{
+//========= Macro generated from object: mu_life/Muon Lifetime [ns]
+//========= by ROOT version6.16/00
+   
+   TH1F *mu_life__6 = new TH1F("mu_life__6","Muon Lifetime [ns]",200,0,3000);
+   mu_life__6->SetBinContent(5,1);
+   mu_life__6->SetBinContent(8,1);
+   mu_life__6->SetBinContent(17,1);
+   mu_life__6->SetBinContent(24,1);
+   mu_life__6->SetBinContent(26,1);
+   mu_life__6->SetBinContent(27,1);
+   mu_life__6->SetBinContent(32,1);
+   mu_life__6->SetBinContent(33,1);
+   mu_life__6->SetBinContent(42,1);
+   mu_life__6->SetBinContent(53,1);
+   mu_life__6->SetBinContent(64,1);
+   mu_life__6->SetBinContent(92,1);
+   mu_life__6->SetBinContent(169,1);
+   mu_life__6->SetBinContent(201,1);
+   mu_life__6->SetEntries(14);
+
+   ci = TColor::GetColor("#0000ff");
+   mu_life__6->SetFillColor(ci);
+
+   ci = TColor::GetColor("#0000ff");
+   mu_life__6->SetLineColor(ci);
+   mu_life__6->GetXaxis()->SetTitle("t [ns]");
+   mu_life__6->GetXaxis()->SetLabelFont(42);
+   mu_life__6->GetXaxis()->SetLabelSize(0.035);
+   mu_life__6->GetXaxis()->SetTitleSize(0.035);
+   mu_life__6->GetXaxis()->SetTitleOffset(1);
+   mu_life__6->GetXaxis()->SetTitleFont(42);
+   mu_life__6->GetYaxis()->SetLabelFont(42);
+   mu_life__6->GetYaxis()->SetLabelSize(0.035);
+   mu_life__6->GetYaxis()->SetTitleSize(0.035);
+   mu_life__6->GetYaxis()->SetTitleFont(42);
+   mu_life__6->GetZaxis()->SetLabelFont(42);
+   mu_life__6->GetZaxis()->SetLabelSize(0.035);
+   mu_life__6->GetZaxis()->SetTitleSize(0.035);
+   mu_life__6->GetZaxis()->SetTitleOffset(1);
+   mu_life__6->GetZaxis()->SetTitleFont(42);
+   mu_life__6->Draw("");
+}

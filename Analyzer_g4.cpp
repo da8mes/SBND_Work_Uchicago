@@ -13,6 +13,7 @@
 // ROOT classes
 #include "TCanvas.h"
 #include "TFile.h"
+#include "TNtuple.h"
 #include "TF1.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -32,24 +33,8 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "lardataobj/MCBase/MCTrack.h"
-//#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
-//#include "lardata/DetectorInfoServices/DetectorClocksService.h" 
-//#include "larcore/Geometry/Geometry.h" 
-//#include "larcorealg/Geometry/GeometryCore.h" 
-//#include "larcoreobj/SimpleTypesAndConstants/geo_types.h" 
-//#include "larsim/Simulation/LArG4Parameters.h"
 
 //===============GLOBAL VARIABLES==================================// 
-
-/*
-// Geometry and Clock Providers
-geo::GeometryCore const* geoService; // Geometry provider
-detinfo::DetectorClocks const* timeService; // Detector clock provider   
-const detinfo::DetectorProperties* detprop; // Detector Properties
-geoService = lar::providerFrom<geo::Geometry>(); 
-timeService = lar::providerFrom<detinfo::DetectorClocksService>(); 
-detProp = lar::providerFrom<detinfo::DetectorPropertiesService>(); 
-*/ 
 
 // Detector Dimensions: the outer most co-ordinate limits for the active 
 // volumes for TPC0 and TPC1
@@ -67,8 +52,8 @@ const double y_high1 = 200;
 const double z_low0 = 0; 
 const double z_high0 = 500;
 const double z_low1 = 0;
-const double z_high1 = 500; 
-
+const double z_high1 = 500;
+// ==============BIN DEFS =========================================//
 //===============END OF GLOBAL VARIABLES===========================// 
  
 // checks if the given position is in the detector (SBND)
@@ -85,41 +70,89 @@ int inTPC(TLorentzVector pos)
 	else return 1;
 }
 
-// populate muEInit and muActiveLen given
+// populate muEoActiveLen given
 // MCTrajectory of the Particle and the corresponding 
 // two hists for track length and initial Energy 
-void fillEnergyLength(const simb::MCTrajectory& track, TH1F* E, TH1F* len)
+void fillEnergyLength(const simb::MCTrajectory& track, TH2F* hist, TH1F* test, TH1F* test1, TH1F* test2)
 {
+
+	int muonsInTPC = 0; 
 
 	simb::MCTrajectory::const_iterator pt; 
 	TLorentzVector tPos;
 	TLorentzVector tMom;
 	TLorentzVector tPosInit; // first active point 
-	TLorentzVector tPosFinal; // last active point  
-	// advance on the track via step
-	int step = 1; // step size  
-	// flag used in determining initial Energy
-	// of the muon's point of entry 
-	int eInitUndetermined = 1;  
+	TLorentzVector tPosFinal; // last active point 
+
+	double Eo; 
+	int step = 1; // move along track via step size  
+	int eInitUndetermined = 1; // flag to find Eo 
 	for (pt = track.begin(); pt != track.end(); pt+=step)
 	{ 
 		tPos = (*pt).first;
-		if (not inTPC(tPos)) continue; // wait till in Active Vol  
-		tPosFinal = tPos; // get the final active point
-
-		if (eInitUndetermined) // if initial energy undetermined so far 
-		   {
-			tPosInit = tPos; // save first active point
-			tMom = (*pt).second; 
-			E->Fill(tMom.E()); // get the initial energy	
-			eInitUndetermined = 0; // indicate that init energy is determined
-		   } 
+		int intpc = inTPC(tPos); 
+		if (intpc)
+		{
+			if (eInitUndetermined)	
+			{
+				// first tpc point
+				tPosInit = tPos;
+				test->Fill(tPos[1]); // tPos-y
+				tMom = (*pt).second;
+				Eo = tMom.E(); // init energy
+				// test1->Fill(Eo);
+				muonsInTPC++;
+				eInitUndetermined = 0; // init point is determined
+				continue; 	
+			}
+	
+			else // never init point 
+			{
+				TLorentzVector npt = (*(pt+step)).first; 
+				if (inTPC(npt)) continue; 
+				// last point in tpc
+				tPosFinal = tPos;
+				double activeDist = (tPosFinal.Vect() - tPosInit.Vect()).Mag();
+				// test2->Fill(activeDist); 
+				hist->Fill(Eo, activeDist); 
+				return ; 				
+			}	
+		}
 	}
-
-	len->Fill( (tPosFinal.Vect() - tPosInit.Vect()).Mag() ); // get the active track length        		
-	return; 
-
+	return ; 
 }
+
+// write hist to TNtuple 
+void makeTNtupleFromHist(TNtuple* table, TH2F* hist) 
+{
+
+	int binx; 
+	int biny; 
+	int binz; 
+        int nBinx = hist->GetNbinsX();
+        int nBiny = hist->GetNbinsY();
+	int nBin = hist->GetBin(nBinx, nBiny);
+        for (int i = 1; i <= nBin; i++)
+        {
+                hist->GetBinXYZ(i, binx, biny, binz);
+                double N = hist->GetBinContent(i);
+		double Eo = hist->GetXaxis()->GetBinCenter(binx);  
+		double dist = hist->GetYaxis()->GetBinCenter(biny);  
+ 	        	
+		std::cout << "i: " << i << std::endl; 		
+		std::cout << "binx: " << binx << std::endl; 
+		std::cout << "biny: " << biny << std::endl; 		
+		std::cout << "binz: " << binz << std::endl; 		
+		std::cout << "N: " << N << std::endl; 		
+		std::cout << "Eo: " << Eo << std::endl; 		
+		std::cout << "dist: " << dist << std::endl; 		
+		std::cout << "\n ------------ \n " << dist << std::endl; 				 
+		 
+		table->Fill(N, Eo, dist);  
+	} 
+	return ;
+}
+
 
 // Calculate the Point of Closest Approach for pos from parent 
 // track. Returns the shortest distance between pos and the entire 
@@ -144,65 +177,6 @@ double poca(const simb::MCTrajectory& track, TLorentzVector pos)
 	return distMin; 
 }
 
-/* 
-// calculates the expected number of delta rays of energy T
-// that come out of particle's track 
-// Only valid for I << T <= W where I is the Ionization energy of Ar 
-// I = 188.000000 ev
-// All the enrgy terms have to be in [Mev] 
-int nDeltaEvents(const simb::MCTrajectory& traject,  double T)
-{
-	// MCTrajectory object has type vector<Pair<TLVecPosition, TLVecMomentum>>; 
-	// const simb::MCTrajectory& traject = particle.Trajectory();
-	// std::cout << "\n--\nMuon Trajectory Info: " << traject << std::endl;
-	
-	double dN_dT = 0; // what is dN/dT_x0 = 0;   
-	const double c2 = 1; // c^2, natural units 
-	const double me = 0.511; // Mass of electron [Mev/c^2] 
-	const double mu = 105.658; // Mass of Muon  [Mev/c^2]
-	const double me_mu = me / mu; 
-	const double K = 0.307075; // [MeV mol^-1 cm^2]
-	const double z2 = 1; // charge number of muon
-	const double Z = 18; // atmonic number of Ar 
-	const double A =  39.948; // [g mol^-1] atomic mass of Ar 
-	const double Ar_density = 1.3954; // [g / cm^3] density of liquid Ar  
-	const double coeff = (0.5*K*z2*Z)/A; // 0.5*k*z^2*Z/A 
-	TLorentzVector prevPos; // (0.,0.,0.,0.) in case I need this to find dx
- 
-	// using the const iterator for traject	
-	simb::MCTrajectory::const_iterator step; 
-	for (step = traject.begin(); step != traject.end(); step++)
-	    {	 
-		// Do stuff to trajectory steps	 
-		// std::cout << "\n--\nStep Info: " << *step << std::endl; 
-
-		auto const pt = *(step); // extract <Pos, Mom> pair
-		auto const pos = pt.first;  
-		auto const P = pt.second; 
-		double dx = (pos.Vect() - prevPos.Vect()).Mag(); // [cm] get dx
-		prevPos = pos; // save point for next step 
-
-		// exludes points outside active volumes of TPCs
-		if (not inTPC(pos)) continue;
- 
-		double beta = P.Beta(); 
-		double gamma = P.Gamma(); 
-		double eMu = 1000*P.E(); // [Mev] Energy of Muon  
-		double W = (2*me*c2*pow(beta*gamma, 2)) / (1+ (2*gamma*me_mu) + pow(me_mu,2)); // max energy transfer 
-		if (T > W) return 0; // if delta energy requested is more than max energy transfer 	
-		double F = ( ((1/pow(T*beta, 2)) - (1/(T*W)) ) + 0.5*(1/pow(beta*(eMu + mu*c2), 2)) ); // spin dependent term
-		// ... divided by beta^2 and T^2
-		
-		// integrate over dx
-		// Multiplied by Ar_density because the 
-		// formula in Phys Rev D is events per density
-		// Citation: DOI: 10.1103/PhysRevD.98.030001 page 449. 
-		dN_dT += Ar_density * coeff * F * dx;  		
-	    } 
-	return dN_dT; 
-} 
-*/ 
-
 int main(int argc, char* argv[]) {
   // Parse command-line arguments
    if (argc < 3) {
@@ -214,8 +188,9 @@ int main(int argc, char* argv[]) {
   // graph formatting lines 
   gStyle->SetHistLineColor(kBlue);
   //gStyle->SetFillColor(0);   
-  gStyle->SetOptStat("nemr"); 
+  gStyle->SetOptStat(0); 
   gStyle->SetOptFit(1111);
+  gROOT->ForceStyle(); 
 
   // read and print input file name  
   std::string outfile = argv[1];
@@ -241,19 +216,59 @@ int main(int argc, char* argv[]) {
   int nBremElectrons = 0; 
 
 
+//================ Test Hists  ========================================//
+ 
+  TH1F* TEST_HIST = new TH1F("testy", "y-tPosInit (expect line at 200)", 1000, -300, 300); 
+  TH1F* TEST_HIST1 = new TH1F("testEo", "Eo-tPosInit", 100, 0, 100); 
+  TH1F* TEST_HIST2 = new TH1F("testActDist", "activeDist (expect line at 400)", 1000, 0, 500); 
+
 //================= Muon Hists=======================================//
 
-// ================= For Delta Theory ===========//
-  // fMuEInit_ are uded for extracting the probability dist of cosmic muon 
-  // energies (initial, inside active TPC) from CORSIKA. 
-  // fMuLen_ is used for doing the same thing for length of muon Track 
-  // in Active TPC.
+  // variable hist for muEoActiveDist energy [0, 1]: 250 Mev ; [1, 30]: 1Gev ; [30,100]: 10 Gev
+  const Int_t EMAX = 100; // Gev
+  const Int_t XMAX = 500; // Cm 
+  
+  const Int_t ENBINS = 40 + (30 - 1) + (EMAX - 30)/10;    
+  Double_t step = 0.025; 
+  Double_t Eedges[ENBINS+1]; 
+  int i = 0; 
+  Double_t e = 0;  
+  for (int i = 0; i < ENBINS+1; i++)
+     {
+	Eedges[i] = e;
+	if (e >= 1 && e < 30) step = 1; 
+        if (e >= 30) step = 10;
+        e+= step;  
+     }
+ 
+  const Int_t XNBINS = 100; 
+  Double_t Xedges[XNBINS+1]; 
+  for (int i = 0; i < XNBINS+1; i++)
+     {
+         Xedges[i] = i * (XMAX/XNBINS);  
+     }
+ 
+  TH2F* muEoActiveDist = new TH2F("muEoAD", "mu (Eo, ActiveDistance)", ENBINS, Eedges, XNBINS, Xedges); 
+  muEoActiveDist->SetXTitle("Eo [Gev]");
+  muEoActiveDist->SetYTitle("dist [cm]");
+  muEoActiveDist->SetOption("COLZ"); 
 
+  TH2F* muEoActiveDistStop = new TH2F("muEoADstop", "muStop (Eo, ActiveDistance)", 100, 0, 10, 100, 0, 500); 
+  muEoActiveDistStop->SetXTitle("Eo [Gev]");
+  muEoActiveDistStop->SetYTitle("dist [cm]");
+  muEoActiveDistStop->SetOption("COLZ");
+
+  TH2F* muEoActiveDistPen = new TH2F("muEoADpen", "muPen (Eo, ActiveDistance)", 100, 0, 10, 100, 0, 500); 
+  muEoActiveDistPen->SetXTitle("Eo [Gev]");
+  muEoActiveDistPen->SetYTitle("dist [cm]");
+  muEoActiveDistPen->SetOption("COLZ");
+
+  // All Muons; make this TH2F* of (Eo, activeDist)
   TF1* fMuEInit = new TF1("fMuEInit", "[0]*exp(-x/[1])", 0, 100);
   TH1F* muEInit = new TH1F("mu_energy_init", "mu_Energy_Initial", 100, 0, 100); 
   TF1* fMuLen = new TF1("fMuLen", "[0]*exp(-x/[1])", 0, 3000); // might not be exponential
   // max Active TPC Length is 4^2 + 4^2 + 5^2 == 57 [m] == 5700 [cm] 
-  TH1F* muActiveLen = new TH1F("mu_len", "mu_ActiveTPC_TLength", 500, 0, 5700); 
+  TH1F* muActiveLen = new TH1F("mu_len", "mu_ActiveTPC_TLength", 60, 0, 6000); 
 
   // Penetrating Muons
   TF1* fMuEInitPen = new TF1("fMuEInitPen", "[0]*exp(-x/[1])", 0, 100);
@@ -286,7 +301,6 @@ int main(int argc, char* argv[]) {
   muPlusLife->SetXTitle("t [ns]"); 
 
 //=================Electron Hists=====================================//
-  //THStack* eStack = new THStack("es", "Electron Energies"); 
  
   // All Electron E
   TH1F* eEnergy = new TH1F("eE", "e_Energy", 1000, 0, 1);
@@ -296,6 +310,9 @@ int main(int argc, char* argv[]) {
   TH1F* eEnergyMuon = new TH1F("eE_mu", "e_Energy_mu", 500, 0.001, 0.5); 
   eEnergyMuon->SetFillColor(kRed);
   eEnergyMuon->SetXTitle("e Energy [Gev]"); 
+
+  // Stack to compare MC delta vs Theory delta
+  THStack* deltaStack = new THStack("deltaStack", "Delta Probability Dist");  
   // Log Binning
   // bins = {10^-4, ..., 10^-1}, 100 log spaced bins  
   const Int_t NBINS = 100;
@@ -407,7 +424,10 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 	muEnergy->Fill(muP.E());  
 	muBeta->Fill(muP.Beta());
 	muGamma->Fill(muP.Gamma());
-        // Populate hists for Penetrating and Stopping Muons 
+	// a global look at active track dist and muEInit 
+	// fillEnergyLength(muTrajectory, muEoActiveDist, TEST_HIST, TEST_HIST1, TEST_HIST2);
+        // Populate hists for Penetrating and Stopping Muons
+        /* 
         if (inTPC(muPositionEnd)) // stopping 
            {
 		fillEnergyLength(muTrajectory, muEInitStop, muActiveLenStop); 
@@ -416,8 +436,8 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 	   {
 		fillEnergyLength(muTrajectory, muEInitPen, muActiveLenPen); 
 	   }
-
-	continue;  
+	*/ 
+	// continue;  
         // To populate expected delta events for each muon, use a curried version of 
         // nDeltaEvents 
 
@@ -464,7 +484,7 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 	     // they have to move at least 3 wire hits (9mm) 
 	     // which means they need at least that much energy 
 	     // if they don't have that energy they are drift.
-	     // That Min Energy == 2 [Mev] 
+	     // That Minimum Energy == 2 [Mev] 
 	     // Citation: https://physics.nist.gov/cgi-bin/Star/e_table.pl
 	    	     
 	     //Apply minimum energy cut (2Mev)
@@ -476,7 +496,7 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 	     if (eE < 0.002) continue; // get rid of drifts 
 
 	     float epsilon = 0.2; // [cm] from eDist plot
-	     // this cut throws away tip deltas that might 
+	     // this cut throws away tip deltas 
  	     if (e_dist_mu < epsilon) // michel 
                {
 		nMichelElectrons++; 
@@ -489,12 +509,10 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 		// because decay time are different: 
 		if (pdgId == 13)
 		{
-		    //std::cout << "Mu Minus (?) pdg: " << pdgId << std::endl; 
 		    muMinusLife->Fill(time_to_decay);	
 		}
 		else
 		{
-		    //std::cout << "Mu Plus (?) pdg: " << pdgId << std::endl; 
 		    muPlusLife->Fill(time_to_decay);  
  		} 
 		continue; // get rid of michels  
@@ -506,7 +524,7 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 	     // if spread, then there is something else contaminating the
 	     // delta hists   
 	     double pca = poca(muTrajectory, positionStart); 
-	     ePocaMu->Fill(pca);
+	     // ePocaMu->Fill(pca);
 
 	     // Apply poca cut found from ePocaMU 
 	     // pca <= 0.001 cm
@@ -515,20 +533,20 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 		{
 		 //std::cout << "Start Process for Poca < 0.02: " << dProcess << std::endl;  
 		 nBremElectrons++; 
-		 eEnergyBrem->Fill(eE); 
+		 // eEnergyBrem->Fill(eE); 
 		 if (dProcess == "muPairProd") eEnergyPP->Fill(eE); 
 		 continue; 
 		}
-  
+ 
 	     float cosTheta = momentumStart.CosTheta(); 
 	     nDeltaElectrons++;
 	     eCosDelta->Fill(cosTheta);
 	     eTrackDist->Fill(dTrackLength);  
 	     eEnergyDelta->Fill(eE);     
 
-   } // finish u- daughter loop       
-     } // finish mcparticle loop  
-} // finish event loop  
+           } // finish u- daughter loop       
+        } // finish mcparticle loop  
+      } // finish event loop  
 
   /*
   // Perform various fits to hists
@@ -540,7 +558,17 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
   
   muEInitStop->Fit("fMuEInitStop");
   muActiveLenStop->Fit("fMuLenStop");  
-  */ 
+  */
+
+  // Add to stackDelta
+  deltaStack->Add(eEnergyDelta); 
+ 
+  // Normalize delta plot to integral == 1
+  // and re-draw
+  Double_t scale = 1/eEnergyDelta->Integral();
+  eEnergyDelta->Scale(scale);
+  eEnergyDelta->DrawCopy(); 
+ 
   muMinusLife->Fit("fMinusLife");   
   muPlusLife->Fit("fPlusLife");  
 
@@ -554,22 +582,25 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
   // Save histogram (to file and PDF)
   TFile* fout = new TFile(outfile.c_str(), "recreate");
 
+  TNtuple* allMuonStat = new TNtuple("allMuonStat", "All Muon Stats", "N:Eo:x");
+  makeTNtupleFromHist(allMuonStat, muEoActiveDist);  
+
+  // get delta_theory by exporting a calculating function from Deltas.cpp.
+  // then add delta MC and delta theory 
+  // define stack here 
+
   // Write the hists and plots 
+
+  TEST_HIST->Write();  
+  TEST_HIST1->Write(); 
+  TEST_HIST2->Write();
  
-  /* 
-  eMomentum->Write(); 
-  eMomentumX->Write();
-  eMomentumY->Write();
-  eMomentumZ->Write();  
-  */ 
-
-  //deltaTheory->Write(); 
-
   //eEnergy->Write();
   eEnergyMuon->Write();
   eEnergyMich->Write();
   eEnergyBrem->Write();
-  eEnergyPP->Write();   
+  eEnergyPP->Write();  
+  
   eEnergyDelta->Write();
   //eCosDelta->Write();
   eDistMu->Write(); 
@@ -579,14 +610,18 @@ for (gallery::Event ev(filename) ; !ev.atEnd(); ev.next()) {
 
   //mu_x->Write(); 
 
-  //muEInit->Write();
-  //muActiveLen->Write(); 
+  muEInit->Write();
+  muActiveLen->Write(); 
 
   muEInitPen->Write();
   muActiveLenPen->Write();  
   muEInitStop->Write();
   muActiveLenStop->Write();  
- 
+
+  allMuonStat->Write();  
+  muEoActiveDist->Write();
+  muEoActiveDistStop->Write();
+  muEoActiveDistPen->Write();  
   muEnergy->Write();  
   muMinusLife->Write();  
   muPlusLife->Write(); 
